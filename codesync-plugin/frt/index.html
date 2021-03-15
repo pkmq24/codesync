@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<link href="./lib/prism.css" rel="stylesheet" />
+	</head>
+	<body class="line-numbers">
+    <div id="qrcode" style=""></div>
+    <p>班号：</p><p id="number"></p>
+    <div >
+      <pre>
+<code class="language-js" id="mainCoder">
+</code>
+    </pre>
+    </div>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.10.0/jquery.min.js"></script>
+		<script src="./lib/prism.js"></script>
+    <script src="./lib/func.js"></script>
+    <script src="./lib/agora-rtm-sdk-1.3.1.js"></script>
+    <script src="./lib/qr.js"></script>
+	</body>
+
+	<script>
+    const rtm = {
+      client: null,
+      channel: null,
+    };
+    let options = {
+      appId: "",
+      channel: "",
+      token: null,
+      uid: "testing",
+      channelID: null,
+    };
+    async function initRtm(uqid) {
+      rtm.client = AgoraRTM.createInstance(options.appId);
+      let uid = options.uid;
+      await rtm.client
+        .login({
+          token: null,
+          uid: uid + Math.round(Math.random() * 100).toString(),
+        });
+      
+      let id = uqid;
+      console.log(id);
+      rtm.channel = rtm.client.createChannel(id);
+      options.channelID = id;
+      await rtm.channel.join()
+      rtm.channel.on("ChannelMessage", ({ text }, senderId) => {
+        // text 为收到的频道消息文本，senderId 为发送方的 User ID
+        console.log(text);
+        console.log(senderId);
+        if(text.substr(0,6)==="[CODE]") {
+          text = text.replace("|][|","\n").replace("[CODE]","");
+          $("#mainCoder").html(unHtml(text));
+          Prism.highlightAll();
+        }
+      });
+      console.log(rtm);
+    }
+    async function sendRtmMsg(msg) {
+      await rtm.channel.sendMessage({ text: msg })
+    }
+
+    $(document).ready(function() {
+      const uid = getUrlParam("id");
+      const ttype = getUrlParam("ty");
+      $("#number").html(uid);
+      $("#mainCoder").attr("class",`language-${ttype}`)
+      initRtm(uid);
+      new QRCode(document.getElementById("qrcode"), window.location.href);
+    })
+	</script>
+</html>
